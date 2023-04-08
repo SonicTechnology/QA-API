@@ -5,11 +5,11 @@ require('dotenv').config();
 // const parse = require('csv-parser');
 // const { parse } = require('csv-parse');
 const pool = new Pool({
-  database: process.env.PG_DB,
-  port: process.env.PG_PORT,
+  database: 'test',
+  port: 5432,
 });
 
-// console.log(process.env.PG_DB)
+// console.log('test')
 
 // const Promise = require('bluebird');
 // const initOptions = { promiseLib: Promise };

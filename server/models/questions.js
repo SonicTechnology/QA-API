@@ -20,13 +20,14 @@ module.exports = {
         'answerer_email', answers.answerer_email,
         'reported', answers.reported,
         'helpful', answers.helpful,
-        'photos', (SELECT json_agg(json_build_object(
+        'photos', (SELECT coalesce(json_agg(json_build_object(
           'id', answers_photos.id,
           'answer_id', answers_photos.answer_id,
-          'url', answers_photos.url))
+          'url', answers_photos.url)), '[]')
           FROM answers_photos WHERE answers_photos.answer_id = answers.id)))
         FROM answers WHERE answers.question_id = questions.id)
       AS answers FROM questions WHERE product_id = ${product_id} ORDER BY id;`);
+      client.end();
     return dataQ.rows;
   },
   // createQ: async ({ product_id }, { body, name, email }) => {

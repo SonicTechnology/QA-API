@@ -222,3 +222,7 @@ GROUP BY styles.productid;
 (SELECT json_agg(json_build_object('id', photos.id, 'url', photos.url)) FROM photos WHERE photos.review_id = reviews.review_id)
 
 */
+/*
+`select jsonb_agg(jsonb_build_object("id": questions.id, "product_id": questions.product_id, "body": questions.body, "date_written": questions.date_written, "asker_name": questions.asker_name, "asker_email": questions.asker_email, "reported": questions.reported, "helpful": questions.helpful)) from questions where product_id = ${prodId}`
+
+*/

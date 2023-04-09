@@ -6,7 +6,7 @@
   "scripts": {
     "start": "nodemon server/app.js",
     "build-db": "node server/database/index.js",
-    "test": "mocha server/tests/test.js"
+    "test": "k6 run server/tests/script.js"
   },
   "repository": {
     "type": "git",

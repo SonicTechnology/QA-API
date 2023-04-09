@@ -1,15 +1,12 @@
 const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config();
-// const parse = require('csv-parser');
-// const { parse } = require('csv-parse');
+// require('dotenv').config();
+
 const pool = new Pool({
   database: 'test',
   port: 5432,
 });
-
-// console.log('test')
 
 // const Promise = require('bluebird');
 // const initOptions = { promiseLib: Promise };
@@ -27,7 +24,7 @@ const queryQCreate = `create table questions(
   id serial primary key,
   product_id integer not null,
   body text not null,
-  date_written text not null,
+  date_written bigint not null,
   asker_name varchar(30) not null,
   asker_email varchar(50) not null,
   reported boolean not null default 'false',
@@ -39,7 +36,7 @@ const queryACreate = `create table answers (
   id serial primary key,
   question_id integer not null,
   body text not null,
-  date_written varchar(50) not null,
+  date_written bigint not null,
   answerer_name varchar(50) not null,
   answerer_email varchar(100) not null,
   reported boolean not null default 'false',
@@ -53,9 +50,17 @@ const queryAPCreate = `create table answers_photos (
   url text not null
 )`
 
+
 const queryQCopy = `copy questions(id, product_id, body, date_written, asker_name, asker_email, reported, helpful) from '${csvQ}' with (format csv, header true);`
 const queryACopy = `copy answers(id, question_id, body, date_written, answerer_name, answerer_email, reported, helpful) from '${csvA}' with (format csv, header true);`
 const queryAPCopy = `copy answers_photos(id, answer_id, url) from '${csvAP}' with (format csv, header true);`
+
+const queryMax = (table) => {return `SELECT max(id) from ${table};`};
+const queryQInc = (seq, max) => {return `ALTER SEQUENCE ${seq} RESTART WITH ${max};`};
+
+// 2018-10-18T00:00:00.000Z
+const queryQDate = (seq) => {return `ALTER TABLE ${seq}
+  ALTER COLUMN date_written TYPE timestamp with time zone USING to_timestamp(date_written/1000) AT time zone 'UTC';`};
 
 const transferQs = async () => {
   const client = await pool.connect();
@@ -63,6 +68,10 @@ const transferQs = async () => {
     await client.query(queryQCreate);
     await client.query(queryQCopy);
     console.log('successfully transferred questions data');
+    await client.query(queryQDate('questions'));
+    const maxId = await client.query(queryMax('questions'));
+    await client.query(queryQInc('questions_id_seq', maxId.rows[0].max));
+    console.log('successfully altered questions table');
   } catch (err) {
     console.error('error transferring data', err);
   } finally {
@@ -76,6 +85,10 @@ const transferAs = async () => {
     await client.query(queryACreate);
     await client.query(queryACopy);
     console.log('successfully transferred answers data');
+    const maxId = await client.query(queryMax('answers'));
+    await client.query(queryQDate('answers'));
+    await client.query(queryQInc('answers_id_seq', maxId.rows[0].max));
+    console.log('successfully altered answers table');
   } catch (err) {
     console.error('error transferring data', err);
   } finally {
@@ -89,6 +102,9 @@ const transferAPs = async () => {
     await client.query(queryAPCreate);
     await client.query(queryAPCopy);
     console.log('successfully transferred answers photos data');
+    const maxId = await client.query(queryMax('answers_photos'));
+    await client.query(queryQInc('answers_photos_id_seq', maxId.rows[0].max));
+    console.log('successfully altered answers_photos table');
   } catch (err) {
     console.error('error transferring data', err);
   } finally {
@@ -100,42 +116,13 @@ transferQs();
 transferAs();
 transferAPs();
 
-// Promise.all([transferQs, transferAs, transferAPs]).then(() => console.log('successfully transferred all data'))
+const dropTables = async () => {
+  const client = await pool.connect();
+  await client.query(`DROP TABLE questions;`);
+  // await client.query(`DROP TABLE answers;`);
+  // await client.query(`DROP TABLE answers_photos;`);
+  await client.end();
+  console.log('successfully dropped tables');
+}
 
-
-
-// const createTables = async () => {
-//   const client = await pool.connect();
-//   try {
-//     await client.query(queryQCreate);
-//     await client.query(queryACreate);
-//     await client.query(queryAPCreate);
-//     console.log('successfully created tables');
-//   } catch (err) {
-//     console.error('error creating tables', err);
-//   } finally {
-//     client.end();
-//   }
-// }
-
-// // const client = pool.connect();
-
-// const transferData = async () => {
-//   const client = await pool.connect();
-//   try {
-//     // await client.query(queryQCreate);
-//     // await client.query(queryACreate);
-//     // await client.query(queryAPCreate);
-//     await client.query(queryQCopy);
-//     await client.query(queryACopy);
-//     await client.query(queryAPCopy);
-//     console.log('successfully transferred data');
-//   } catch (err) {
-//     console.error('error transferring data', err);
-//   } finally {
-//     client.end();
-//   }
-// }
-
-// createTables();
-// transferData();
+// dropTables();

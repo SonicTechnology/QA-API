@@ -1,14 +1,14 @@
 // const db = require('../database');
 const { Pool } = require('pg');
-require('dotenv').config();
+// require('dotenv').config();
 
 const pool = new Pool({
-  database: 'test'
+  database: 'test',
   port: 5432,
 });
 
 module.exports = {
-  getAllQs: async ({ product_id }) => {
+  getAll: async ({ product_id }) => {
     const client = await pool.connect();
     const dataQ = await client.query(`
       SELECT questions.id, questions.product_id, questions.body, questions.date_written, questions.asker_name, questions.asker_email, questions.reported, questions.helpful, (SELECT json_agg(json_build_object(
@@ -30,15 +30,15 @@ module.exports = {
       client.end();
     return dataQ.rows;
   },
-  // createQ: async ({ product_id }, { body, name, email }) => {
-  //   const client = await pool.connect();
-  //   // const data = await pool.query(`select * from questions`)
-  //   const createQQuery = `INSERT INTO questions(id, product_id, body, date_written, asker_name, asker_email) VALUES(DEFAULT, $1, $2, $3, $4, $5);`;
-  //   const createQValues = [product_id, body, new Date(), name, email];
-  //   await client.query(createQQuery, createQValues);
-  //   // const newData = await client.query(`select * from questions where product_id = ${product_id} order by id DESC;`)
-  //   // console.log(newData.rows);
-  //   return;
-  // }
+  createQ: async ({ product_id }, { body, name, email }) => {
+    const client = await pool.connect();
+    const data = await pool.query(`SELECT max(id) FROM questions`);
+    const createQQuery = `INSERT INTO questions(id, product_id, body, date_written, asker_name, asker_email) VALUES($1, $2, $3, $4, $5, $6);`;
+    const createQValues = [data.rows[0].max + 1, product_id, body, new Date(), name, email];
+    await client.query(createQQuery, createQValues);
+    // const newData = await client.query(`select * from questions where product_id = ${product_id} order by id DESC;`)
+    // console.log(newData.rows);
+    return;
+  }
 }
 

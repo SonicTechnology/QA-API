@@ -1,20 +1,44 @@
-import http from 'k6/http';
-import { check, group, sleep } from 'k6';
+import { sleep, check } from 'k6'
+import http from 'k6/http'
 
 export const options = {
-  // stages: [
-  //   { duration: '5m', target: 100 }, // simulate ramp-up of traffic from 1 to 100 users over 5 minutes.
-  //   // { duration: '10m', target: 100 }, // stay at 100 users for 10 minutes
-  //   { duration: '5m', target: 0 }, // ramp-down to 0 users
-  // ],
-  vus: 10,
-  duration: '30s',
-};
+  ext: {
+    loadimpact: {
+      distribution: { 'amazon:us:ashburn': { loadZone: 'amazon:us:ashburn', percent: 100 } },
+      apm: [],
+    },
+  },
+  thresholds: {},
+  scenarios: {
+    Scenario_1: {
+      executor: 'ramping-vus',
+      gracefulStop: '30s',
+      stages: [
+        { target: 20, duration: '15s' },
+        { target: 20, duration: '30s' },
+        { target: 0, duration: '15s' },
+      ],
+      gracefulRampDown: '30s',
+      exec: 'scenario_1',
+    },
+  },
+}
 
-// const BASE_URL = 'http://localhost:3000';
+export function scenario_1() {
+  let response
 
-export default () => {
-  http.get(`http://localhost:3000/qa/questions/40348`);
+  // get question1
+  response = http.get('http://localhost:3000/qa/questions?product_id=40348', {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+  check(response, {
+    'status equals 200': response => response.status.toString() === '200',
+    'body contains Eum asperiores eum est': response =>
+      response.body.includes('Eum asperiores eum est'),
+  })
 
-  sleep(1);
-};
+  // Automatically added sleep
+  sleep(1)
+}

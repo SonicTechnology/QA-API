@@ -2,9 +2,9 @@ const models = require('../models');
 
 module.exports = {
   get: (req, res) => {
-    // const {params} = req.{params};
+    const params = req.params;
     console.log('controller');
-    models.questions.getAllQs(req.params)
+    models.questions.getAll(req.params)
       .then(data => {
         res.status(200).json(data);
       })

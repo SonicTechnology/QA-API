@@ -1,44 +1,212 @@
-// const db = require('../database');
-const { Pool } = require('pg');
+// const { Pool } = require('pg');
 // require('dotenv').config();
+// const Pool = require('pg-promise')();
+// const db = Pool({
+//   database: 'test',
+//   port: 5432,
+// });
+const db = require('../database/db.js');
 
-const pool = new Pool({
-  database: 'test',
-  port: 5432,
-});
-
+// returns
+// {
+//  "product_id": product_id,
+//  results: [{
+//   question_id: {
+//    'question_id': q.id,
+//    'question_body', q.body,
+//    'question_date', q.date_written,
+//    'asker_name', q.asker_name,
+//    'question_helpfulness', q.helpful,
+//    'reported', q.reported,
+//    'answers': answer | null []
+//  }
+// }]
+// }
 module.exports = {
   getAll: async ({ product_id }) => {
-    const client = await pool.connect();
-    const dataQ = await client.query(`
-      SELECT questions.id, questions.product_id, questions.body, questions.date_written, questions.asker_name, questions.asker_email, questions.reported, questions.helpful, (SELECT json_agg(json_build_object(
-        'id', answers.id,
-        'question_id', answers.question_id,
-        'body', answers.body,
-        'date_written', answers.date_written,
-        'answerer_name', answers.answerer_name,
-        'answerer_email', answers.answerer_email,
-        'reported', answers.reported,
-        'helpful', answers.helpful,
-        'photos', (SELECT coalesce(json_agg(json_build_object(
-          'id', answers_photos.id,
-          'answer_id', answers_photos.answer_id,
-          'url', answers_photos.url)), '[]')
-          FROM answers_photos WHERE answers_photos.answer_id = answers.id)))
-        FROM answers WHERE answers.question_id = questions.id)
-      AS answers FROM questions WHERE product_id = ${product_id} ORDER BY id;`);
-      client.end();
-    return dataQ.rows;
+    // qData: question[]
+    const qData = await db.any(`SELECT * FROM questions WHERE product_id = ${product_id}`);
+
+    // aData: answers[]
+    const aData = (await Promise.all(qData.map(async (q) => {
+      return await db.any(`SELECT * FROM answers WHERE answers.question_id = ${q.id}`);
+    }))).flat();
+
+    // console.log({aData})
+
+    aData.forEach(async (a) => {
+      const photos = await db.any(`SELECT answers_photos.url FROM answers_photos WHERE answers_photos.answer_id = ${a.id}`)
+
+      a.photos = photos;
+    })
+
+    // linking answers to questions
+    qData.forEach((q) => {
+      q.answers = aData.find(({ question_id }) => question_id === q.id)
+    })
+
+    // transform object into nested object where {question_id: object}
+    const result = {
+      product_id,
+      results: qData.map(q => ({[q.id]: q}))
+    }
+
+    return result
+  //   return await db.any(`
+  //   SELECT q.product_id,
+  //   jsonb_agg(
+  //     jsonb_build_object(
+  //       'question_id', q.id,
+  //       'question_body', q.body,
+  //       'question_date', q.date_written,
+  //       'asker_name', q.asker_name,
+  //       'question_helpfulness', q.helpful,
+  //       'reported', q.reported,
+  //       'answers', (
+  //         SELECT coalesce(
+  //           jsonb_agg(
+  //             jsonb_build_object(
+  //               'id', a.id,
+  //               'body', a.body,
+  //               'date', a.date_written,
+  //               'answerer_name', a.answerer_name,
+  //               'helpfulness', a.helpful,
+  //               'photos', ARRAY(SELECT answers_photos.url FROM answers_photos WHERE answers_photos.answer_id = a.id)
+  //             )
+  //           ), '[]'
+  //         )
+  //         FROM answers a
+  //         WHERE a.question_id = q.id
+  //       )
+  //     )
+  //   ) AS results
+  // FROM questions q
+  // LEFT JOIN answers a ON q.id = a.question_id
+  // LEFT JOIN answers_photos ap ON a.id = ap.answer_id
+  // WHERE q.product_id = ${product_id}
+  // GROUP BY q.product_id, q.id;
+  // `)
+
+
+      // return await db.any(
+      //   `SELECT q.product_id,
+      //     jsonb_agg(
+      //       jsonb_build_object(
+      //         'question_id', q.id,
+      //         'question_body', q.body,
+      //         'question_date', q.date_written,
+      //         'asker_name', q.asker_name,
+      //         'question_helpfulness', q.helpful,
+      //         'reported', q.reported,
+      //         'answers', (
+      //           SELECT coalesce(
+      //             jsonb_agg(
+      //               jsonb_build_object(
+      //                 'id', a.id,
+      //                 'body', a.body,
+      //                 'date', a.date_written,
+      //                 'answerer_name', a.answerer_name,
+      //                 'helpfulness', a.helpful,
+      //                 'photos', ARRAY(SELECT answers_photos.url FROM answers_photos WHERE answers_photos.answer_id = a.id)
+      //               )
+      //             ), '[]'
+      //           )
+      //           FROM answers a
+      //           WHERE a.question_id = q.id
+      //         )
+      //       )
+      //     ) AS results
+      //   FROM questions q
+      //   WHERE q.product_id = ${product_id}
+      //   GROUP BY q.product_id;`
+      // )
   },
   createQ: async ({ product_id }, { body, name, email }) => {
-    const client = await pool.connect();
-    const data = await pool.query(`SELECT max(id) FROM questions`);
-    const createQQuery = `INSERT INTO questions(id, product_id, body, date_written, asker_name, asker_email) VALUES($1, $2, $3, $4, $5, $6);`;
-    const createQValues = [data.rows[0].max + 1, product_id, body, new Date(), name, email];
-    await client.query(createQQuery, createQValues);
+    const createQQuery = `INSERT INTO questions(id, product_id, body, date_written, asker_name, asker_email) VALUES(DEFAULT, $1, $2, $3, $4, $5);`;
+    const createQValues = [product_id, body, new Date(), name, email];
+    await db.none(createQQuery, createQValues);
     // const newData = await client.query(`select * from questions where product_id = ${product_id} order by id DESC;`)
     // console.log(newData.rows);
     return;
   }
 }
 
+
+/*
+      // return db.any(
+      //   `SELECT q.product_id,
+      //     jsonb_agg(
+      //       jsonb_build_object(
+      //         'question_id', q.id,
+      //         'question_body', q.body,
+      //         'question_date', q.date_written,
+      //         'asker_name', q.asker_name,
+      //         'question_helpfulness', q.helpful,
+      //         'reported', q.reported,
+      //         'answers', COALESCE(a.answers_json, '[]'::jsonb)
+      //       )
+      //     ) AS results
+      //   FROM questions q
+      //   LEFT JOIN LATERAL (
+      //   SELECT jsonb_agg(
+      //     jsonb_build_object(
+      //       'id', a.id,
+      //       'body', a.body,
+      //       'date', a.date_written,
+      //       'answerer_name', a.answerer_name,
+      //       'helpfulness', a.helpful,
+      //       'photos', COALESCE(
+      //             (
+      //               SELECT jsonb_agg(ap.url)
+      //               FROM answers_photos ap
+      //               WHERE ap.answer_id = a.id
+      //             ),
+      //             '[]'::jsonb
+      //           )
+      //         )
+      //       ) AS answers_json
+      //   FROM answers a
+      //   WHERE a.question_id = q.id
+      //   ) a ON true
+      //   WHERE q.product_id = ${product_id}
+      //   GROUP BY q.product_id;`
+      // )
+        `SELECT q.product_id,
+      jsonb_agg(
+        jsonb_build_object(
+          'question_id', q.id,
+          'question_body', q.body,
+          'question_date', q.date_written,
+          'asker_name', q.asker_name,
+          'question_helpfulness', q.helpful,
+          'reported', q.reported,
+          'answers', COALESCE(a.answers_json, '[]'::jsonb)
+        )
+      ) AS results
+FROM questions q
+LEFT JOIN LATERAL (
+ SELECT jsonb_agg(
+          jsonb_build_object(
+            'id', a.id,
+            'body', a.body,
+            'date', a.date_written,
+            'answerer_name', a.answerer_name,
+            'helpfulness', a.helpful,
+            'photos', COALESCE(
+              (
+                SELECT jsonb_agg(ap.url)
+                FROM answers_photos ap
+                WHERE ap.answer_id = a.id
+              ),
+              '[]'::jsonb
+            )
+          )
+        ) AS answers_json
+ FROM answers a
+ WHERE a.question_id = q.id
+) a ON true
+WHERE q.product_id = ${product_id}
+GROUP BY q.product_id;
+`)
+
+*/

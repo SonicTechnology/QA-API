@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon server/app.js",
-    "build-db": "node server/database/index.js",
+    "build": "node server/database/index.js",
     "test": "k6 run server/tests/script.js"
   },
   "repository": {
@@ -25,6 +25,7 @@
     "csv-parser": "^3.0.0",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
+    "newrelic": "^9.15.0",
     "pg": "^8.10.0",
     "pg-promise": "^11.4.3"
   },

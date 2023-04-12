@@ -1,5 +1,7 @@
-.DS_Store
 .env
 RawData/
 node_modules/
 UseData/
+DockerFile
+newrelic.js
+newrelic_agent.log

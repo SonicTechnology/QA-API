@@ -3,7 +3,6 @@ const models = require('../models');
 module.exports = {
   get: (req, res) => {
     const params = req.params;
-    console.log('controller');
     models.questions.getAll(req.params)
       .then(data => {
         res.status(200).json(data);
@@ -16,7 +15,6 @@ module.exports = {
   post: (req, res) => {
     models.questions.createQ(req.params, req.body)
       .then(() => {
-        console.log('controller post success');
         res.sendStatus(201);
       })
       .catch(err => {

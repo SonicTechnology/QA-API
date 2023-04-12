@@ -3,7 +3,6 @@ const models = require('../models');
 module.exports = {
   get: (req, res) => {
     const params = req.params;
-    console.log('controller');
     models.answers.getAll(req.params)
       .then(data => {
         res.status(200).json(data);

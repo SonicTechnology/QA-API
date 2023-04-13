@@ -24,34 +24,35 @@ const db = require('../database/db.js');
 // }
 module.exports = {
   getAll: async ({ product_id }) => {
-    // qData: question[]
-    const qData = await db.any(`SELECT * FROM questions WHERE product_id = ${product_id}`);
+    // // qData: question[]
+    // const qData = await db.any(`SELECT * FROM questions WHERE product_id = ${product_id}`);
 
-    // aData: answers[]
-    const aData = (await Promise.all(qData.map(async (q) => {
-      return await db.any(`SELECT * FROM answers WHERE answers.question_id = ${q.id}`);
-    }))).flat();
+    // // aData: answers[]
+    // const aData = (await Promise.all(qData.map(async (q) => {
+    //   return await db.any(`SELECT * FROM answers WHERE answers.question_id = ${q.id}`);
+    // }))).flat();
 
-    // console.log({aData})
+    // // console.log({aData})
 
-    aData.forEach(async (a) => {
-      const photos = await db.any(`SELECT answers_photos.url FROM answers_photos WHERE answers_photos.answer_id = ${a.id}`)
+    // aData.forEach(async (a) => {
+    //   const photos = await db.any(`SELECT answers_photos.url FROM answers_photos WHERE answers_photos.answer_id = ${a.id}`)
 
-      a.photos = photos;
-    })
+    //   a.photos = photos;
+    // })
 
-    // linking answers to questions
-    qData.forEach((q) => {
-      q.answers = aData.find(({ question_id }) => question_id === q.id)
-    })
+    // // linking answers to questions
+    // qData.forEach((q) => {
+    //   q.answers = aData.find(({ question_id }) => question_id === q.id)
+    // })
 
-    // transform object into nested object where {question_id: object}
-    const result = {
-      product_id,
-      results: qData.map(q => ({[q.id]: q}))
-    }
+    // // transform object into nested object where {question_id: object}
+    // const result = {
+    //   product_id,
+    //   results: qData.map(q => ({[q.id]: q}))
+    // }
 
-    return result
+    // return result
+
   //   return await db.any(`
   //   SELECT q.product_id,
   //   jsonb_agg(
@@ -88,38 +89,38 @@ module.exports = {
   // `)
 
 
-      // return await db.any(
-      //   `SELECT q.product_id,
-      //     jsonb_agg(
-      //       jsonb_build_object(
-      //         'question_id', q.id,
-      //         'question_body', q.body,
-      //         'question_date', q.date_written,
-      //         'asker_name', q.asker_name,
-      //         'question_helpfulness', q.helpful,
-      //         'reported', q.reported,
-      //         'answers', (
-      //           SELECT coalesce(
-      //             jsonb_agg(
-      //               jsonb_build_object(
-      //                 'id', a.id,
-      //                 'body', a.body,
-      //                 'date', a.date_written,
-      //                 'answerer_name', a.answerer_name,
-      //                 'helpfulness', a.helpful,
-      //                 'photos', ARRAY(SELECT answers_photos.url FROM answers_photos WHERE answers_photos.answer_id = a.id)
-      //               )
-      //             ), '[]'
-      //           )
-      //           FROM answers a
-      //           WHERE a.question_id = q.id
-      //         )
-      //       )
-      //     ) AS results
-      //   FROM questions q
-      //   WHERE q.product_id = ${product_id}
-      //   GROUP BY q.product_id;`
-      // )
+      return await db.any(
+        `SELECT q.product_id,
+          jsonb_agg(
+            jsonb_build_object(
+              'question_id', q.id,
+              'question_body', q.body,
+              'question_date', q.date_written,
+              'asker_name', q.asker_name,
+              'question_helpfulness', q.helpful,
+              'reported', q.reported,
+              'answers', (
+                SELECT coalesce(
+                  jsonb_agg(
+                    jsonb_build_object(
+                      'id', a.id,
+                      'body', a.body,
+                      'date', a.date_written,
+                      'answerer_name', a.answerer_name,
+                      'helpfulness', a.helpful,
+                      'photos', ARRAY(SELECT answers_photos.url FROM answers_photos WHERE answers_photos.answer_id = a.id)
+                    )
+                  ), '[]'
+                )
+                FROM answers a
+                WHERE a.question_id = q.id
+              )
+            )
+          ) AS results
+        FROM questions q
+        WHERE q.product_id = ${product_id}
+        GROUP BY q.product_id;`
+      )
   },
   createQ: async ({ product_id }, { body, name, email }) => {
     const createQQuery = `INSERT INTO questions(id, product_id, body, date_written, asker_name, asker_email) VALUES(DEFAULT, $1, $2, $3, $4, $5);`;

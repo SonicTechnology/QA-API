@@ -1,7 +1,9 @@
 .env
 RawData/
 node_modules/
-UseData/
 DockerFile
 newrelic.js
 newrelic_agent.log
+*backup*
+*.pgsql
+ubuntu*

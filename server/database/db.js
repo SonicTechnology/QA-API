@@ -1,8 +1,12 @@
 const Pool = require('pg-promise')();
+require('dotenv').config();
 
 const db = Pool({
-  database: 'test',
-  port: 5432,
+  user: process.env.PGUSER,
+  host: process.env.PGHOST,
+  database: process.env.PGDB,
+  password: process.env.PGPW,
+  port: process.env.PGPORT,
 });
 
 module.exports = db;

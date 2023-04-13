@@ -3,7 +3,7 @@
 const db = require('./db.js');
 const fs = require('fs');
 const path = require('path');
-// require('dotenv').config();
+require('dotenv').config();
 
 // const db = Pool({
 //   database: 'test',

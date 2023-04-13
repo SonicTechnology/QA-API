@@ -2,8 +2,10 @@ const Pool = require('pg-promise')();
 require('dotenv').config();
 
 const db = Pool({
-  user: 'andrewihn',
-  host: 'ec2-54-89-22-195.compute-1.amazonaws.com',
+  user: 'ubuntu',
+  // user: 'andrewihn',
+  host: '3.84.12.181',
+  // host: 'ec2-18-206-125-213.compute-1.amazonaws.com',
   database: 'test',
   password: 'pw',
   port: 5432,

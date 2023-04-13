@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const controller = require('./controllers');
+// require('dotenv').config();
 
 
 router.get('/questions/:product_id', controller.questions.get);

@@ -7,3 +7,5 @@ newrelic_agent.log
 *backup*
 *.pgsql
 ubuntu*
+*.txt
+.DS_Store

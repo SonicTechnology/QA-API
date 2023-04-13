@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon server/app.js",
+    "start": "node server/app.js",
     "build": "node server/database/index.js",
     "test": "k6 run server/tests/script.js"
   },

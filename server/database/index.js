@@ -41,18 +41,36 @@ const queryAPCopy = `copy answers_photos(id, answer_id, url) from '${csvAP}' wit
 
 
 const queryPIndex = `CREATE INDEX product_id_index ON questions(product_id);`;
-const queryQIDIndex = `CREATE INDEX questions_id_index ON questions(id);`;
+// const queryQIDIndex = `CREATE INDEX questions_id_index ON questions(id);`;
 const queryQIndex = `CREATE INDEX question_id_index ON answers(question_id);`;
-const queryAIDIndex = `CREATE INDEX answers_id_index ON answers(id);`;
+// const queryAIDIndex = `CREATE INDEX answers_id_index ON answers(id);`;
 const queryAIndex = `CREATE INDEX answer_id_index ON answers_photos(answer_id);`;
 
-const queryMax = (table) => {return `SELECT max(id) from ${table};`};
-const queryQInc = (seq, max) => {return `ALTER SEQUENCE ${seq} RESTART WITH ${max};`};
-
+const queryMax = (table, col) => {return `SELECT max(${col}) from ${table};`};
+const queryInc = (seq, max) => {return `ALTER SEQUENCE ${seq} RESTART WITH ${max};`};
 
 // 2018-10-18T00:00:00.000Z
 const queryQDate = (table) => {return `ALTER TABLE ${table}
   ALTER COLUMN date_written TYPE timestamp with time zone USING to_timestamp(date_written/1000) AT time zone 'UTC';`};
+
+// alter columns to fit api request
+const queryAlter = (tab, prev, mod) => `ALTER TABLE ${tab} RENAME COLUMN ${prev} TO ${mod};`;
+
+// const queryAlterQ = ['questions', 'id',
+// `question_id,
+//   RENAME COLUMN body TO question_body,
+//   RENAME COLUMN date_written TO question_date,
+//   RENAME COLUMN helpful TO questions_helpfulness`
+// ];
+// const queryAlterA = [
+//   'answers',
+//   'date_written',
+//   'date,RENAME COLUMN helpful TO helpfulness'
+// ];
+
+// delete unnecessary columns
+// const queryDelQCol = 'ALTER TABLE DROP COLUMN ';
+
 
 const transferQs = async () => {
   try {
@@ -61,10 +79,14 @@ const transferQs = async () => {
     console.log('successfully transferred questions data');
     await db.none(queryPIndex);
     await db.none(queryQDate('questions'));
-    await db.any(queryMax('questions'))
+    await db.none(queryAlter('questions', 'id', 'question_id'));
+    await db.none(queryAlter('questions', 'body', 'question_body'));
+    await db.none(queryAlter('questions', 'date_written', 'question_date'));
+    await db.none(queryAlter('questions', 'helpful', 'question_helpfulness'));
+    await db.any(queryMax('questions', 'question_id'))
       .then(async (currMax) => {
         // console.log(currMax[0].max)
-        await db.none(queryQInc('questions_id_seq', currMax[0].max));
+        await db.none(queryInc('questions_id_seq', currMax[0].max));
       })
       .catch((err) => {
         console.error('Error in altering questions id seq')
@@ -83,14 +105,16 @@ const transferAs = async () => {
     await db.none(queryACopy);
     console.log('successfully transferred answers data');
     await db.none(queryQIndex);
-    await db.any(queryMax('answers'))
+    await db.any(queryMax('answers', 'id'))
       .then(async (currMax) => {
-        await db.none(queryQInc('answers_id_seq', currMax[0].max));
+        await db.none(queryInc('answers_id_seq', currMax[0].max));
       })
       .catch((err) => {
         console.error('Error in altering answers id seq')
       });
     await db.none(queryQDate('answers'));
+    await db.none(queryAlter('answers', 'date_written', 'date'));
+    await db.none(queryAlter('answers', 'helpful', 'helpfulness'));
     console.log('successfully altered answers table');
   } catch (err) {
     console.error('error transferring data', err);
@@ -105,9 +129,9 @@ const transferAPs = async () => {
     await db.none(queryAPCopy);
     console.log('successfully transferred answers photos data');
     await db.none(queryAIndex);
-    await db.any(queryMax('answers_photos'))
+    await db.any(queryMax('answers_photos', 'id'))
       .then(async (currMax) => {
-        await db.none(queryQInc('answers_photos_id_seq', currMax[0].max));
+        await db.none(queryInc('answers_photos_id_seq', currMax[0].max));
       })
       .catch((err) => {
         console.error('Error in altering answers_photos id seq')

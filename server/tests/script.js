@@ -22,27 +22,27 @@ export const options = {
   //     exec: 'scenario_1',
   //   },
   // },
-  vus: 1,
+  vus: 100,
   duration: '30s',
 }
 
 export default function() {
-  http.get('http://localhost:3000/qa/questions/100011');
-  // const sc1Question = http.get('http://localhost:3000/qa/questions/40348');
-  // check(sc1Question, {
-  //   'status equals 200': (res) => res.status.toString() === '200',
-  // });
+  // http.get('http://localhost:3001/qa/questions/100011');
+  const sc1Question = http.get('http://localhost:3001/qa/questions/1000010');
+  check(sc1Question, {
+    'status equals 200': (res) => res.status.toString() === '200',
+  });
 }
 
 // export function scenario_1() {
 //   // questions
-//   const sc1Question = http.get('http://localhost:3000/qa/questions/40348');
+//   const sc1Question = http.get('http://localhost:3000/qa/questions/1000010');
 //   check(sc1Question, {
 //     'status equals 200': (res) => res.status.toString() === '200',
 //   });
 
 //   // answers
-//   // const sc1Answer = http.get('http://localhost:3000/qa/questions/40348/141986');
+//   // const sc1Answer = http.get('http://localhost:3000/qa/questions/1000010/3518961');
 //   // check(sc1Answer, {
 //   //   'status equals 200': (res) => res.status.toString() === '200',
 //   // });

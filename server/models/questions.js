@@ -3,31 +3,41 @@ const db = require('../database/db.js');
 
 module.exports = {
   getAll: async ({ product_id }) => {
+    const data = {};
     // qData: question[]
-    const qData = await db.many(`SELECT * FROM questions WHERE product_id = ${product_id}`);
+    data.q = await db.many(`SELECT * FROM questions WHERE product_id = ${product_id} AND reported = false`);
 
     // aData: answers[]
-    const aData = (await Promise.all(qData.map(async (q) => {
-      return await db.any(`SELECT * FROM answers WHERE answers.question_id = ${q.id}`);
+    data.a = (await Promise.all(data.q.map(async (currQ) => {
+      return await db.any(`SELECT * FROM answers WHERE answers.question_id = ${currQ.question_id} AND reported = false`);
+      // console.log(data)
+      // return data;
     }))).flat();
 
-    aData.forEach(async (a) => {
-      const photos = await db.any(`SELECT answers_photos.url FROM answers_photos WHERE answers_photos.answer_id = ${a.id}`)
-      a.photos = photos;
-    })
+    // apData: photos
+    data.ap = (await Promise.all(data.a.map(async (currA) => {
+      return await db.any(`SELECT * FROM answers_photos WHERE answers_photos.answer_id = ${currA.id}`);
+    }))).flat();
 
-    // linking answers to questions
-    qData.forEach((q) => {
-      q.answers = aData.find(({ question_id }) => question_id === q.id)
-    })
+    // link aPData to aData
+    data.a.forEach(async (a) => {
+      a.photos = await data.ap.find(({ answer_id }) => answer_id === a.id)
+    });
+
+    // link aData to qData
+    data.q.forEach(async (currQ) => {
+    currQ.answers = await data.a.find((currA) => currA.question_id === currQ.question_id);
+    });
+
 
     // transform object into nested object where {question_id: object}
     const result = {
       product_id,
-      results: qData.map(q => ({[q.id]: q}))
-    }
+      // results: data.q.map(q => ({[q.id]: q})),
+      results: data.q,
+    };
 
-    return result
+    return result;
   },
 
   createQ: async ({ product_id }, { body, name, email }) => {

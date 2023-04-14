@@ -1,22 +1,7 @@
-// const { Pool } = require('pg');
-// const Pool = require('pg-promise')();
 const db = require('./db.js');
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
-
-// const db = Pool({
-//   database: 'test',
-//   port: 5432,
-// });
-
-// const Promise = require('bluebird');
-// const initOptions = { promiseLib: Promise };
-// const pgp = require('pg-promise')(initOptions);
-// const db = pgp({
-//   port: 5432,
-//   database: 'test',
-// });
 
 const queryQCreate = `create table questions(
   id serial primary key,
@@ -54,12 +39,16 @@ const queryQCopy = `copy questions(id, product_id, body, date_written, asker_nam
 const queryACopy = `copy answers(id, question_id, body, date_written, answerer_name, answerer_email, reported, helpful) from '${csvA}' with (format csv, header true);`
 const queryAPCopy = `copy answers_photos(id, answer_id, url) from '${csvAP}' with (format csv, header true);`
 
+
 const queryPIndex = `CREATE INDEX product_id_index ON questions(product_id);`;
+const queryQIDIndex = `CREATE INDEX questions_id_index ON questions(id);`;
 const queryQIndex = `CREATE INDEX question_id_index ON answers(question_id);`;
+const queryAIDIndex = `CREATE INDEX answers_id_index ON answers(id);`;
 const queryAIndex = `CREATE INDEX answer_id_index ON answers_photos(answer_id);`;
 
 const queryMax = (table) => {return `SELECT max(id) from ${table};`};
 const queryQInc = (seq, max) => {return `ALTER SEQUENCE ${seq} RESTART WITH ${max};`};
+
 
 // 2018-10-18T00:00:00.000Z
 const queryQDate = (table) => {return `ALTER TABLE ${table}
@@ -70,6 +59,7 @@ const transferQs = async () => {
     await db.none(queryQCreate);
     await db.none(queryQCopy);
     console.log('successfully transferred questions data');
+    await db.none(queryPIndex);
     await db.none(queryQDate('questions'));
     await db.any(queryMax('questions'))
       .then(async (currMax) => {
@@ -130,9 +120,14 @@ const transferAPs = async () => {
   }
 }
 
-transferQs();
-transferAs();
-transferAPs();
+const transformTables = async () => {
+  await transferQs();
+  await transferAs();
+  await transferAPs();
+  console.log('successfully transformed database');
+}
+
+transformTables();
 
 const dropTables = async () => {
   await db.none(`DROP TABLE answers_photos;`);
@@ -143,4 +138,3 @@ const dropTables = async () => {
 
 // dropTables();
 
-// module.exports.db = db;

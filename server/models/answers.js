@@ -1,24 +1,10 @@
-// const { Pool } = require('pg');
-// require('dotenv').config();
-// const Pool = require('pg-promise')();
-// const db = Pool({
-//   database: 'test',
-//   port: 5432,
-// });
 const db = require('../database/db.js');
 
 module.exports = {
-  getAll: async ({ product_id, question_id }) => {
+  getAll: async ({ question_id }) => {
     return await db.any(
       `SELECT
-        id,
-        question_id,
-        body,
-        date_written,
-        answerer_name,
-        answerer_email,
-        reported,
-        helpful,
+        answers.*,
         ARRAY(SELECT answers_photos.url FROM answers_photos WHERE answers_photos.answer_id = answers.id) AS photos
       FROM answers WHERE answers.question_id = ${question_id}`
     );

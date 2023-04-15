@@ -15,9 +15,11 @@ module.exports = {
     }))).flat();
 
     // apData: photos
-    data.ap = (await Promise.all(data.a.map(async (currA) => {
-      return await db.any(`SELECT * FROM answers_photos WHERE answers_photos.answer_id = ${currA.id}`);
-    }))).flat();
+    if (data.a) {
+      data.ap = (await Promise.all(data.a.map(async (currA) => {
+        return await db.any(`SELECT * FROM answers_photos WHERE answers_photos.answer_id = ${currA.id}`);
+      }))).flat();
+    }
 
     // link aPData to aData
     data.a.forEach(async (a) => {
